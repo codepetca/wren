@@ -1,0 +1,97 @@
+{
+  "version": "0.1.0",
+  "milestone": "MVP Solo Player Demo",
+  "features": {
+    "project-setup": {
+      "status": "not-started",
+      "description": "Next.js + Convex + TypeScript setup",
+      "tasks": [
+        "Initialize Next.js with App Router",
+        "Set up Convex",
+        "Configure TypeScript strict mode",
+        "Add Leaflet dependency"
+      ]
+    },
+    "convex-schema": {
+      "status": "not-started",
+      "description": "Database schema and basic operations",
+      "tasks": [
+        "Define Race schema",
+        "Define POI schema",
+        "Define Completion schema",
+        "Create seed data mutation",
+        "Create queries for race/POI data"
+      ]
+    },
+    "map-planner-engine": {
+      "status": "not-started",
+      "description": "Pure TS module for map calculations",
+      "tasks": [
+        "calculateBounds(pois) → bounding box",
+        "calculateZoom(bounds, mapSize) → zoom level",
+        "Unit tests for map planner"
+      ]
+    },
+    "validators-engine": {
+      "status": "not-started",
+      "description": "Checkpoint validation logic",
+      "tasks": [
+        "photoOnly() validator (MVP)",
+        "gpsRadius() validator (post-MVP)",
+        "Unit tests for validators"
+      ]
+    },
+    "map-screen": {
+      "status": "not-started",
+      "description": "Main map view with pins",
+      "tasks": [
+        "Leaflet map component",
+        "Blank pin rendering",
+        "Completed pin with thumbnail",
+        "Progress indicator (3/6 found)"
+      ]
+    },
+    "poi-modal": {
+      "status": "not-started",
+      "description": "Checkpoint interaction modal",
+      "tasks": [
+        "Show clue text",
+        "Camera/photo picker button",
+        "Upload photo to Convex",
+        "Close modal on completion"
+      ]
+    },
+    "photo-viewer": {
+      "status": "not-started",
+      "description": "View completed checkpoint photos",
+      "tasks": [
+        "Full-screen photo view",
+        "Close button"
+      ]
+    },
+    "complete-screen": {
+      "status": "not-started",
+      "description": "End of race celebration",
+      "tasks": [
+        "You found all X message",
+        "Photo grid of all completions",
+        "Play again button"
+      ]
+    },
+    "mock-data": {
+      "status": "not-started",
+      "description": "Sample race for testing",
+      "tasks": [
+        "Create 6 POIs with coordinates",
+        "Write clues for each POI",
+        "Convex seed script"
+      ]
+    }
+  },
+  "statusLegend": {
+    "not-started": "Work has not begun",
+    "in-progress": "Currently being worked on",
+    "blocked": "Waiting on dependency or decision",
+    "complete": "Done and tested"
+  }
+}
