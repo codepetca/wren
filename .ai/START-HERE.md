@@ -1,4 +1,4 @@
-# Wren AI Agent Onboarding
+# Scurry AI Agent Onboarding
 
 Start every session by reading this file.
 

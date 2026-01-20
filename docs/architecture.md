@@ -1,4 +1,4 @@
-# Wren Architecture
+# Scurry Architecture
 
 ## System Overview
 
@@ -140,9 +140,9 @@ No authentication. Use a random `visitorId` stored in localStorage.
 
 ```typescript
 // On app load
-const visitorId = localStorage.getItem('wren_visitor_id')
+const visitorId = localStorage.getItem('scurry_visitor_id')
   ?? crypto.randomUUID();
-localStorage.setItem('wren_visitor_id', visitorId);
+localStorage.setItem('scurry_visitor_id', visitorId);
 ```
 
 "Play again" clears completions for this visitorId or generates a new one.

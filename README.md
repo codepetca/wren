@@ -1,12 +1,12 @@
-# Wren
+# Scurry
 
-**Wren** is a map-first photo scavenger hunt app inspired by *Amazing Race*–style gameplay.
+**Scurry** is a map-first photo scavenger hunt app inspired by *Amazing Race*–style gameplay.
 
 Players explore real or indoor spaces, snap photos at checkpoints, and watch the map come alive as completed locations turn into photo pins. Designed for casual, family-friendly play — bikes, walks, museums, schools, or events.
 
 ---
 
-## ✨ What Wren Is
+## ✨ What Scurry Is
 
 - A **photo-based exploration game**
 - Map-driven (not list-driven)
@@ -33,9 +33,9 @@ Think: *wander → notice → snap → move on*.
 
 ## 🗺️ Map Engine
 
-Wren automatically:
+Scurry automatically:
 - Chooses a **natural zoom** for a cluster of POIs
-- Splits POIs into multiple **map legs** if they’re far apart
+- Splits POIs into multiple **map legs** if they're far apart
 - Supports multiple map renderers:
   - Real map (OSM / Mapbox)
   - Cartoon / illustrated map (static image)
@@ -46,15 +46,15 @@ Each race can have one or more map legs (e.g. *Downtown* → *Park*).
 
 ## 📍 Checkpoint Validation Types
 
-Each checkpoint defines **how it’s completed**:
+Each checkpoint defines **how it's completed**:
 
-- **GPS_RADIUS**  
+- **GPS_RADIUS**
   Complete when user is within X meters of the location
-- **QR_CODE**  
+- **QR_CODE**
   Scan a QR code (perfect for indoor spaces)
-- **PHOTO_ONLY**  
+- **PHOTO_ONLY**
   Photo submission without location enforcement
-- **MANUAL**  
+- **MANUAL**
   Tap to complete (fallback / accessibility)
 
 This allows the same engine to work:
@@ -86,7 +86,7 @@ The UI engine converts lat/lng → percentage positions so the same logic works 
 - Animated pin unlocks
 - Offline-friendly map images
 
-AI is **never required** for validation — it’s used only for fun/polish.
+AI is **never required** for validation — it's used only for fun/polish.
 
 ---
 
@@ -94,9 +94,9 @@ AI is **never required** for validation — it’s used only for fun/polish.
 
 - **Next.js** (App Router)
 - **TypeScript**
-- **Vercel** (hosting)
-- **Supabase** or **Vercel Postgres + Blob**
+- **Convex** (database + file storage)
 - **Leaflet** (map rendering)
+- **Vercel** (hosting)
 - **PWA** (Add to Home Screen)
 
 ---
@@ -104,19 +104,12 @@ AI is **never required** for validation — it’s used only for fun/polish.
 ## 📂 High-Level Architecture
 
 ```
-/app
-  /race
-  /map
-  /poi
-  /score
-/lib
-  mapPlanner.ts        // clustering, bounds, zoom logic
-  uiEngine.ts          // render model for cartoon maps
-  validators/          // GPS, QR, Photo validators
-/db
-  schema.sql
-/public
-  /maps                // cartoon map images
+/src/app          → Next.js pages and routes
+/src/components   → React components
+/lib              → Pure TypeScript engines
+  mapPlanner.ts   → bounds, zoom calculations
+  validators/     → GPS, QR, Photo validators
+/convex           → Schema, queries, mutations
 ```
 
 ---
@@ -140,12 +133,12 @@ AI is **never required** for validation — it’s used only for fun/polish.
 
 ---
 
-## 🐦 Why “Wren”
+## 🐿️ Why "Scurry"
 
-Wrens are small, curious birds known for:
-- exploring paths
-- noticing details
-- hopping from place to place
+Squirrels scurry through parks and neighborhoods:
+- darting from spot to spot
+- discovering hidden treasures
+- always on the move
 
 Exactly how the app is meant to feel.
 
@@ -153,8 +146,7 @@ Exactly how the app is meant to feel.
 
 ## 📌 Status
 
-🚧 In active development  
-Target: **v1 complete within 2 months**
+🚧 In active development
 
 ---
 

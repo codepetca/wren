@@ -14,7 +14,7 @@ Read `.ai/START-HERE.md` for full onboarding. Required reading order:
 
 ## Project Overview
 
-Wren is a map-first photo scavenger hunt PWA. Players explore locations, snap photos at checkpoints, and see completed locations turn into photo pins on the map.
+Scurry is a map-first photo scavenger hunt PWA. Players explore locations, snap photos at checkpoints, and see completed locations turn into photo pins on the map.
 
 ## Tech Stack
 
@@ -24,6 +24,16 @@ Wren is a map-first photo scavenger hunt PWA. Players explore locations, snap ph
 - Leaflet (map rendering)
 - Vitest (testing)
 - Vercel (hosting)
+
+## Commands
+
+```bash
+npm run dev          # Start Next.js dev server
+npm run build        # Production build
+npm test             # Run tests in watch mode
+npm run test:run     # Run tests once
+npx convex dev       # Start Convex dev server (requires auth)
+```
 
 ## Architecture
 

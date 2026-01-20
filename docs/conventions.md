@@ -1,4 +1,4 @@
-# Wren Code Conventions
+# Scurry Code Conventions
 
 ## Technology Constraints
 

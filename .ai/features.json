@@ -3,88 +3,93 @@
   "milestone": "MVP Solo Player Demo",
   "features": {
     "project-setup": {
-      "status": "not-started",
+      "status": "complete",
       "description": "Next.js + Convex + TypeScript setup",
       "tasks": [
-        "Initialize Next.js with App Router",
-        "Set up Convex",
-        "Configure TypeScript strict mode",
-        "Add Leaflet dependency"
+        "[x] Initialize Next.js with App Router",
+        "[x] Set up Convex schema and client",
+        "[x] Configure TypeScript strict mode",
+        "[x] Add Vitest for testing",
+        "[x] Add Leaflet and react-leaflet"
       ]
     },
     "convex-schema": {
-      "status": "not-started",
+      "status": "complete",
       "description": "Database schema and basic operations",
       "tasks": [
-        "Define Race schema",
-        "Define POI schema",
-        "Define Completion schema",
-        "Create seed data mutation",
-        "Create queries for race/POI data"
+        "[x] Define Race schema",
+        "[x] Define POI schema",
+        "[x] Define Completion schema",
+        "[x] Create queries (races, pois, completions)",
+        "[x] Create mutations (createCompletion, clearByVisitor)",
+        "[x] Create file upload (generateUploadUrl, getUrl)"
       ]
     },
     "map-planner-engine": {
-      "status": "not-started",
+      "status": "complete",
       "description": "Pure TS module for map calculations",
       "tasks": [
-        "calculateBounds(pois) → bounding box",
-        "calculateZoom(bounds, mapSize) → zoom level",
-        "Unit tests for map planner"
+        "[x] calculateBounds(pois) → bounding box",
+        "[x] calculateZoom(bounds, mapSize) → zoom level",
+        "[x] calculateCenter(bounds) → center point",
+        "[x] Unit tests (7 tests passing)"
       ]
     },
     "validators-engine": {
-      "status": "not-started",
+      "status": "complete",
       "description": "Checkpoint validation logic",
       "tasks": [
-        "photoOnly() validator (MVP)",
-        "gpsRadius() validator (post-MVP)",
-        "Unit tests for validators"
+        "[x] photoOnly() validator",
+        "[x] manual() validator",
+        "[x] qrCode() validator",
+        "[x] gpsRadius() validator with haversine",
+        "[x] Unit tests (11 tests passing)"
       ]
     },
     "map-screen": {
-      "status": "not-started",
+      "status": "complete",
       "description": "Main map view with pins",
       "tasks": [
-        "Leaflet map component",
-        "Blank pin rendering",
-        "Completed pin with thumbnail",
-        "Progress indicator (3/6 found)"
+        "[x] Leaflet map component with OSM tiles",
+        "[x] Blank pin rendering (gray with ?)",
+        "[x] Completed pin with photo thumbnail",
+        "[x] Progress indicator bar"
       ]
     },
     "poi-modal": {
-      "status": "not-started",
+      "status": "complete",
       "description": "Checkpoint interaction modal",
       "tasks": [
-        "Show clue text",
-        "Camera/photo picker button",
-        "Upload photo to Convex",
-        "Close modal on completion"
+        "[x] Show clue text",
+        "[x] Camera/photo picker button",
+        "[x] Upload photo to Convex storage",
+        "[x] Close modal on completion"
       ]
     },
     "photo-viewer": {
-      "status": "not-started",
+      "status": "complete",
       "description": "View completed checkpoint photos",
       "tasks": [
-        "Full-screen photo view",
-        "Close button"
+        "[x] Full-screen photo view",
+        "[x] Click to close"
       ]
     },
     "complete-screen": {
-      "status": "not-started",
+      "status": "complete",
       "description": "End of race celebration",
       "tasks": [
-        "You found all X message",
-        "Photo grid of all completions",
-        "Play again button"
+        "[x] Celebration message with emoji",
+        "[x] Photo grid of all completions",
+        "[x] Play again button"
       ]
     },
     "mock-data": {
-      "status": "not-started",
+      "status": "complete",
       "description": "Sample race for testing",
       "tasks": [
-        "Create 6 POIs with coordinates",
-        "Write clues for each POI",
-        "Convex seed script"
+        "[x] Create 6 POIs with Toronto coordinates",
+        "[x] Write unique clues for each POI",
+        "[x] Convex seed script (seedDemoRace, clearAll)"
       ]
     }
   },
