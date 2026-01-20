@@ -5,14 +5,13 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import dynamic from "next/dynamic";
-import { Pin } from "./Map/Pin";
 import { POIModal } from "./POIModal";
 import { PhotoViewer } from "./PhotoViewer";
 import { CompleteScreen } from "./CompleteScreen";
 import { ProgressBar } from "./ProgressBar";
 import { useVisitorId } from "@/hooks/useVisitorId";
 
-// Dynamic import for Map to avoid SSR issues with Leaflet
+// Dynamic imports to avoid SSR issues with Leaflet
 const Map = dynamic(() => import("./Map/MapContainer").then((mod) => mod.Map), {
   ssr: false,
   loading: () => (
@@ -20,6 +19,10 @@ const Map = dynamic(() => import("./Map/MapContainer").then((mod) => mod.Map), {
       <span className="text-gray-500">Loading map...</span>
     </div>
   ),
+});
+
+const Pin = dynamic(() => import("./Map/Pin").then((mod) => mod.Pin), {
+  ssr: false,
 });
 
 interface POIWithCompletion {

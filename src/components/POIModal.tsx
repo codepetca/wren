@@ -29,8 +29,14 @@ export function POIModal({ clue, onClose, onPhotoCapture }: POIModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-end justify-center z-[1000]">
-      <div className="bg-white w-full max-w-lg rounded-t-3xl p-6 pb-10 animate-slide-up">
+    <div
+      className="fixed inset-0 bg-black/50 flex items-end justify-center z-[1000]"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full max-w-lg rounded-t-3xl p-6 pb-10 animate-slide-up"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Close button */}
         <button
           onClick={onClose}
