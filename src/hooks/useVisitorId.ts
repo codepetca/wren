@@ -6,8 +6,8 @@ const STORAGE_KEY = "scurry_visitor_id";
 
 // Fallback for older browsers without crypto.randomUUID
 function generateUUID(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return generateUUID();
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
   }
   // Fallback using crypto.getRandomValues
   return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
