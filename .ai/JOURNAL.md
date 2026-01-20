@@ -55,3 +55,30 @@
 - Create Convex queries and mutations
 
 ---
+
+## 2026-01-20 - MVP Complete + Rename to Scurry
+
+### What was done
+- **Phase 2 - Engines (TDD)**: Built `lib/mapPlanner.ts` (calculateBounds, calculateZoom, calculateCenter) and `lib/validators/` (photoOnly, gpsRadius, qrCode, manual, haversineDistance). 18 tests passing.
+- **Phase 3 - Convex**: Created queries (races, pois, completions), mutations (createCompletion, clearByVisitor), file upload (generateUploadUrl, getUrl), and seed script with 6-POI demo race "Downtown Discovery".
+- **Phase 4 - UI**: Built all components - Map (Leaflet), Pin (blank/completed), POIModal (clue + camera), PhotoViewer, CompleteScreen, ProgressBar, Game orchestrator.
+- **Renamed project**: Wren → Scurry. Updated all files, package.json, README, docs, localStorage key.
+
+### Current state
+- All MVP features coded
+- 18 unit tests passing
+- Convex types will generate on first `npx convex dev`
+
+### To run the app
+```bash
+npx convex dev          # Terminal 1 - generates types, starts backend
+npm run dev             # Terminal 2 - starts Next.js
+# Then call seedDemoRace mutation from Convex dashboard
+```
+
+### Next steps
+- Test full flow on device
+- PWA manifest
+- Deploy to Vercel
+
+---
