@@ -9,7 +9,9 @@
  */
 
 import type * as completions from "../completions.js";
+import type * as crons from "../crons.js";
 import type * as files from "../files.js";
+import type * as games from "../games.js";
 import type * as pois from "../pois.js";
 import type * as races from "../races.js";
 import type * as seed from "../seed.js";
@@ -22,7 +24,9 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   completions: typeof completions;
+  crons: typeof crons;
   files: typeof files;
+  games: typeof games;
   pois: typeof pois;
   races: typeof races;
   seed: typeof seed;
