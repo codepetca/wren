@@ -11,8 +11,8 @@ import { CompleteScreen } from "./CompleteScreen";
 import { ProgressBar } from "./ProgressBar";
 import { useVisitorId } from "@/hooks/useVisitorId";
 
-// Dynamic imports to avoid SSR issues with Leaflet
-const Map = dynamic(() => import("./Map/MapContainer").then((mod) => mod.Map), {
+// Dynamic imports to avoid SSR issues with MapLibre
+const Map = dynamic(() => import("./MapLibre/MapContainer").then((mod) => mod.Map), {
   ssr: false,
   loading: () => (
     <div className="w-full h-full bg-gray-200 flex items-center justify-center">
@@ -21,7 +21,7 @@ const Map = dynamic(() => import("./Map/MapContainer").then((mod) => mod.Map), {
   ),
 });
 
-const Pin = dynamic(() => import("./Map/Pin").then((mod) => mod.Pin), {
+const Pin = dynamic(() => import("./MapLibre/Pin").then((mod) => mod.Pin), {
   ssr: false,
 });
 
