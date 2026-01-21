@@ -9,4 +9,5 @@ export {
   calculateOverallBounds,
   type Zone,
   type ZoneConfig,
+  type TransportMode,
 } from "./zonePlanner";

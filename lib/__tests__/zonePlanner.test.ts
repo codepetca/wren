@@ -140,6 +140,50 @@ describe("planZones", () => {
 
       expect(smallRadius.length).toBeGreaterThanOrEqual(largeRadius.length);
     });
+
+    it("respects transportMode", () => {
+      // POIs spread ~2km apart each - total span ~4km
+      const spreadPOIs = [
+        { lat: 43.6500, lng: -79.3900 },
+        { lat: 43.6600, lng: -79.4000 }, // ~1.5km away
+        { lat: 43.6700, lng: -79.4100 }, // ~1.5km further
+      ];
+
+      const walkZones = planZones(spreadPOIs, { transportMode: "walk" });
+      const bikeZones = planZones(spreadPOIs, { transportMode: "bike" });
+
+      // Walking (1.7km max diameter) should create multiple zones
+      // since total span (~3km) exceeds walking diameter
+      expect(walkZones.length).toBeGreaterThan(1);
+
+      // Biking (5km max diameter) should cluster all into 1 zone
+      // since total span (~3km) fits within biking diameter
+      expect(bikeZones.length).toBe(1);
+    });
+
+    it("respects maxZoneDiameterMeters", () => {
+      // POIs spread ~12km apart - without diameter limit, could chain together
+      const chainablePOIs = [
+        { lat: 43.6532, lng: -79.3832 }, // Downtown Toronto
+        { lat: 43.7000, lng: -79.4000 }, // ~5km north
+        { lat: 43.7500, lng: -79.4200 }, // ~5km further north
+      ];
+
+      // Large radius but small diameter - should NOT chain
+      const withLimit = planZones(chainablePOIs, {
+        clusterRadiusMeters: 10000, // 10km radius
+        maxZoneDiameterMeters: 6000, // 6km max diameter
+      });
+
+      // Large radius without diameter limit - should chain
+      const withoutLimit = planZones(chainablePOIs, {
+        clusterRadiusMeters: 10000,
+        maxZoneDiameterMeters: 20000, // Very large diameter
+      });
+
+      // With diameter limit, should have more zones (chain broken)
+      expect(withLimit.length).toBeGreaterThan(withoutLimit.length);
+    });
   });
 
   describe("bounds calculation", () => {
@@ -194,8 +238,14 @@ describe("planZones", () => {
         { lat: 43.6400, lng: -79.3700 },
       ];
 
-      const tightZones = planZones(tightPOIs, { clusterRadiusMeters: 5000 });
-      const widerZones = planZones(widerPOIs, { clusterRadiusMeters: 5000 });
+      const tightZones = planZones(tightPOIs, {
+        clusterRadiusMeters: 5000,
+        maxZoneDiameterMeters: 5000, // Large enough to cluster all
+      });
+      const widerZones = planZones(widerPOIs, {
+        clusterRadiusMeters: 5000,
+        maxZoneDiameterMeters: 5000,
+      });
 
       // Both should cluster into single zone
       expect(tightZones).toHaveLength(1);

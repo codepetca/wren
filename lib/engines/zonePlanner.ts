@@ -11,14 +11,38 @@ import { calculateBounds, calculateCenter, calculateZoom } from "../mapPlanner";
 // Types
 // ============================================================================
 
+/** Transport mode affects zone size based on travel speed */
+export type TransportMode = 'walk' | 'bike' | 'car';
+
+/** Average speeds in km/h for each transport mode */
+const TRANSPORT_SPEEDS: Record<TransportMode, number> = {
+  walk: 5,    // 5 km/h walking
+  bike: 15,   // 15 km/h biking
+  car: 40,    // 40 km/h city driving
+};
+
+/** Default max travel time in minutes */
+const DEFAULT_MAX_TRAVEL_MINUTES = 20;
+
 export interface ZoneConfig {
+  /**
+   * Transport mode for the scavenger hunt (default: 'walk')
+   * Automatically sets clusterRadiusMeters and maxZoneDiameterMeters
+   * based on 20 min travel time at mode's average speed.
+   * - walk: 5 km/h → 1667m zones
+   * - bike: 15 km/h → 5000m zones
+   * - car: 40 km/h → 13333m zones
+   */
+  transportMode?: TransportMode;
   /** Minimum POIs per zone (default: 3) */
   minPoisPerZone?: number;
   /** Maximum POIs per zone (default: 10) */
   maxPoisPerZone?: number;
-  /** Maximum distance in meters for POIs to be in same cluster (default: 1000) */
+  /** Override: max distance in meters from seed POI (auto-calculated from transportMode if not set) */
   clusterRadiusMeters?: number;
-  /** Map size for zoom calculation (default: 400x600) */
+  /** Override: max distance between any two POIs in a zone (auto-calculated from transportMode if not set) */
+  maxZoneDiameterMeters?: number;
+  /** Map size for zoom calculation (default: 400x700 portrait mobile) */
   mapSize?: MapSize;
 }
 
@@ -44,11 +68,22 @@ interface POILike {
 // Constants
 // ============================================================================
 
+/**
+ * Calculate zone diameter in meters from transport mode
+ * Formula: (minutes / 60) * speed_km/h * 1000
+ */
+function calculateZoneDiameter(mode: TransportMode, minutes: number = DEFAULT_MAX_TRAVEL_MINUTES): number {
+  const speedKmh = TRANSPORT_SPEEDS[mode];
+  return Math.round((minutes / 60) * speedKmh * 1000);
+}
+
 const DEFAULT_CONFIG: Required<ZoneConfig> = {
+  transportMode: 'walk',
   minPoisPerZone: 3,
   maxPoisPerZone: 10,
-  clusterRadiusMeters: 1000, // 1km default radius
-  mapSize: { width: 400, height: 600 },
+  clusterRadiusMeters: calculateZoneDiameter('walk'), // ~1667m
+  maxZoneDiameterMeters: calculateZoneDiameter('walk'), // ~1667m
+  mapSize: { width: 400, height: 700 }, // Portrait mobile
 };
 
 const EARTH_RADIUS_METERS = 6371000;
@@ -89,12 +124,38 @@ function haversineDistance(
 // ============================================================================
 
 /**
+ * Calculate max distance between any POI and a candidate
+ * Used to enforce zone diameter limits
+ */
+function wouldExceedDiameter(
+  cluster: number[],
+  candidateIndex: number,
+  pois: POILike[],
+  maxDiameter: number
+): boolean {
+  const candidate = pois[candidateIndex];
+  for (const existingIndex of cluster) {
+    const existing = pois[existingIndex];
+    const distance = haversineDistance(
+      existing.lat,
+      existing.lng,
+      candidate.lat,
+      candidate.lng
+    );
+    if (distance > maxDiameter) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Simple greedy clustering algorithm based on geographic proximity
  *
  * Algorithm:
  * 1. Sort POIs by latitude (north to south) for deterministic ordering
  * 2. Start with first unassigned POI as cluster seed
- * 3. Add nearby POIs to cluster until max size or no more nearby
+ * 3. Add nearby POIs to cluster until max size, no more nearby, or diameter exceeded
  * 4. Repeat until all POIs assigned
  */
 function clusterPOIs(
@@ -103,7 +164,11 @@ function clusterPOIs(
 ): number[][] {
   if (pois.length === 0) return [];
 
-  const { clusterRadiusMeters, minPoisPerZone, maxPoisPerZone } = config;
+  const { clusterRadiusMeters, maxPoisPerZone, maxZoneDiameterMeters } = config;
+
+  // Determine effective max diameter (0 = auto = 2x radius)
+  const effectiveMaxDiameter =
+    maxZoneDiameterMeters > 0 ? maxZoneDiameterMeters : clusterRadiusMeters * 2;
 
   // Create index array sorted by latitude (deterministic ordering)
   const sortedIndices = pois
@@ -146,6 +211,12 @@ function clusterPOIs(
 
     for (const candidate of candidates) {
       if (cluster.length >= maxPoisPerZone) break;
+
+      // Check if adding this POI would exceed max zone diameter
+      if (wouldExceedDiameter(cluster, candidate.index, pois, effectiveMaxDiameter)) {
+        continue; // Skip this candidate, try next
+      }
+
       cluster.push(candidate.index);
       assigned.add(candidate.index);
     }
@@ -159,20 +230,24 @@ function clusterPOIs(
 
 /**
  * Merge clusters that are too small with their nearest neighbor
- * Only merges if clusters are within reasonable distance
+ * Only merges if clusters are within reasonable distance and diameter limit
  */
 function mergeSmallClusters(
   clusters: number[][],
   pois: POILike[],
   config: Required<ZoneConfig>
 ): number[][] {
-  const { minPoisPerZone, maxPoisPerZone, clusterRadiusMeters } = config;
+  const { minPoisPerZone, maxPoisPerZone, clusterRadiusMeters, maxZoneDiameterMeters } = config;
 
   // If only one cluster, return as-is
   if (clusters.length <= 1) return clusters;
 
-  // Max merge distance: 3x the cluster radius (don't merge distant clusters)
-  const maxMergeDistance = clusterRadiusMeters * 3;
+  // Determine effective max diameter
+  const effectiveMaxDiameter =
+    maxZoneDiameterMeters > 0 ? maxZoneDiameterMeters : clusterRadiusMeters * 2;
+
+  // Max merge distance: use the diameter limit
+  const maxMergeDistance = effectiveMaxDiameter;
 
   // Calculate center of each cluster
   const getClusterCenter = (cluster: number[]) => {
@@ -221,11 +296,34 @@ function mergeSmallClusters(
       }
 
       if (bestMergeIndex !== -1) {
-        // Merge clusters
-        workingClusters[i] = [...workingClusters[i], ...workingClusters[bestMergeIndex]];
-        workingClusters.splice(bestMergeIndex, 1);
-        changed = true;
-        break; // Restart the loop
+        // Check that merged cluster wouldn't exceed diameter limit
+        // Only need to check cross-cluster distances (not within each cluster)
+        const clusterI = workingClusters[i];
+        const clusterJ = workingClusters[bestMergeIndex];
+        let maxCrossDist = 0;
+
+        for (const idxI of clusterI) {
+          for (const idxJ of clusterJ) {
+            const d = haversineDistance(
+              pois[idxI].lat,
+              pois[idxI].lng,
+              pois[idxJ].lat,
+              pois[idxJ].lng
+            );
+            if (d > maxCrossDist) maxCrossDist = d;
+            // Early exit if already over limit
+            if (maxCrossDist > effectiveMaxDiameter) break;
+          }
+          if (maxCrossDist > effectiveMaxDiameter) break;
+        }
+
+        if (maxCrossDist <= effectiveMaxDiameter) {
+          // Merge clusters
+          workingClusters[i] = [...clusterI, ...clusterJ];
+          workingClusters.splice(bestMergeIndex, 1);
+          changed = true;
+          break; // Restart the loop
+        }
       }
     }
   }
@@ -263,9 +361,17 @@ export function planZones<T extends POILike>(
     return [];
   }
 
+  // Determine transport mode and auto-calculate zone diameter
+  const transportMode = config?.transportMode ?? DEFAULT_CONFIG.transportMode;
+  const autoZoneDiameter = calculateZoneDiameter(transportMode);
+
   const mergedConfig: Required<ZoneConfig> = {
-    ...DEFAULT_CONFIG,
-    ...config,
+    transportMode,
+    minPoisPerZone: config?.minPoisPerZone ?? DEFAULT_CONFIG.minPoisPerZone,
+    maxPoisPerZone: config?.maxPoisPerZone ?? DEFAULT_CONFIG.maxPoisPerZone,
+    clusterRadiusMeters: config?.clusterRadiusMeters ?? autoZoneDiameter,
+    maxZoneDiameterMeters: config?.maxZoneDiameterMeters ?? autoZoneDiameter,
+    mapSize: config?.mapSize ?? DEFAULT_CONFIG.mapSize,
   };
 
   // Cluster POIs
