@@ -84,7 +84,6 @@ describe("planZones", () => {
 
     it("generates sequential zone IDs", () => {
       const zones = planZones(torontoPOIs);
-      const ids = zones.map((z) => z.id);
 
       zones.forEach((zone, index) => {
         expect(zone.id).toBe(`zone-${index}`);
