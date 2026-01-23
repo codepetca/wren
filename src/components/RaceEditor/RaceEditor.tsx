@@ -11,6 +11,7 @@ import { LocationSearch } from "./LocationSearch";
 import { POIList } from "./POIList";
 import type { EditorPOI } from "./POIListItem";
 import type { GeocodingResult } from "@/../lib/geocoding";
+import type { PreviewLocation } from "./EditorMap";
 
 // Dynamic import for map to avoid SSR issues
 const EditorMap = dynamic(
@@ -66,6 +67,7 @@ export function RaceEditor({ initialRace, initialPOIs }: RaceEditorProps) {
 
   // UI state
   const [isSaving, setIsSaving] = useState(false);
+  const [previewLocation, setPreviewLocation] = useState<PreviewLocation | null>(null);
   const [errors, setErrors] = useState<{
     name?: string;
     pois?: string;
@@ -77,19 +79,37 @@ export function RaceEditor({ initialRace, initialPOIs }: RaceEditorProps) {
   const updateRace = useMutation(api.races.updateRace);
   const bulkCreatePOIs = useMutation(api.pois.bulkCreate);
 
-  // Add POI from search result
-  const handleAddPOI = useCallback((result: GeocodingResult) => {
-    const newPOI: EditorPOI = {
-      id: generateId(),
+  // Preview a search result on the map
+  const handlePreview = useCallback((result: GeocodingResult) => {
+    setPreviewLocation({
       lat: result.lat,
       lng: result.lng,
       name: result.name,
+      fullAddress: result.fullAddress,
+    });
+  }, []);
+
+  // Confirm adding the previewed location
+  const handleConfirmAdd = useCallback(() => {
+    if (!previewLocation) return;
+
+    const newPOI: EditorPOI = {
+      id: generateId(),
+      lat: previewLocation.lat,
+      lng: previewLocation.lng,
+      name: previewLocation.name,
       clue: "",
       validationType: "PHOTO_ONLY",
     };
     setPOIs((prev) => [...prev, newPOI]);
+    setPreviewLocation(null);
     // Clear POI count error if we now have enough
     setErrors((prev) => ({ ...prev, pois: undefined }));
+  }, [previewLocation]);
+
+  // Cancel the preview
+  const handleCancelPreview = useCallback(() => {
+    setPreviewLocation(null);
   }, []);
 
   // Reorder POIs
@@ -288,7 +308,10 @@ export function RaceEditor({ initialRace, initialPOIs }: RaceEditorProps) {
             {/* Location search */}
             <div className="bg-white rounded-lg border border-gray-200 p-4">
               <h2 className="font-semibold text-gray-900 mb-4">Add Locations</h2>
-              <LocationSearch onSelect={handleAddPOI} />
+              <p className="text-sm text-gray-500 mb-3">
+                Search for a location, then tap &quot;Add Location&quot; on the map to add it.
+              </p>
+              <LocationSearch onSelect={handlePreview} />
             </div>
 
             {/* POI list */}
@@ -313,7 +336,12 @@ export function RaceEditor({ initialRace, initialPOIs }: RaceEditorProps) {
 
           {/* Right column: Map */}
           <div className="lg:sticky lg:top-4 h-[400px] lg:h-[calc(100vh-8rem)]">
-            <EditorMap pois={mapPOIs} />
+            <EditorMap
+              pois={mapPOIs}
+              previewLocation={previewLocation}
+              onAddPreview={handleConfirmAdd}
+              onCancelPreview={handleCancelPreview}
+            />
           </div>
         </div>
       </main>

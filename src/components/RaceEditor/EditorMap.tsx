@@ -14,9 +14,19 @@ interface EditorPOI {
   order: number;
 }
 
+export interface PreviewLocation {
+  lat: number;
+  lng: number;
+  name: string;
+  fullAddress: string;
+}
+
 interface EditorMapProps {
   pois: EditorPOI[];
+  previewLocation?: PreviewLocation | null;
   onPOIClick?: (poi: EditorPOI) => void;
+  onAddPreview?: () => void;
+  onCancelPreview?: () => void;
   children?: React.ReactNode;
 }
 
@@ -27,10 +37,18 @@ let protocolRegistered = false;
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749];
 const DEFAULT_ZOOM = 12;
 
-export function EditorMap({ pois, onPOIClick, children }: EditorMapProps) {
+export function EditorMap({
+  pois,
+  previewLocation,
+  onPOIClick,
+  onAddPreview,
+  onCancelPreview,
+  children
+}: EditorMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markersRef = useRef<Map<string, maplibregl.Marker>>(new Map());
+  const previewMarkerRef = useRef<maplibregl.Marker | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
@@ -223,6 +241,52 @@ export function EditorMap({ pois, onPOIClick, children }: EditorMapProps) {
     });
   }, [pois, mapReady, onPOIClick]);
 
+  // Manage preview marker
+  useEffect(() => {
+    if (!mapRef.current || !mapReady) return;
+
+    const map = mapRef.current;
+
+    // Remove existing preview marker
+    if (previewMarkerRef.current) {
+      previewMarkerRef.current.remove();
+      previewMarkerRef.current = null;
+    }
+
+    // Add new preview marker if we have a preview location
+    if (previewLocation) {
+      const el = document.createElement("div");
+      el.className = "preview-pin";
+      el.innerHTML = `
+        <div class="relative">
+          <div class="w-12 h-12 bg-blue-500 rounded-full border-4 border-white shadow-xl flex items-center justify-center animate-pulse">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            </svg>
+          </div>
+          <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-blue-500 rotate-45 border-r-2 border-b-2 border-white"></div>
+        </div>
+      `;
+
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: "bottom",
+      })
+        .setLngLat([previewLocation.lng, previewLocation.lat])
+        .addTo(map);
+
+      previewMarkerRef.current = marker;
+
+      // Fly to the preview location
+      map.flyTo({
+        center: [previewLocation.lng, previewLocation.lat],
+        zoom: 16,
+        duration: 1000,
+      });
+    }
+  }, [previewLocation, mapReady]);
+
   // Fit bounds when POIs change
   const fitBounds = useCallback(() => {
     if (!mapRef.current || pois.length === 0) return;
@@ -271,9 +335,44 @@ export function EditorMap({ pois, onPOIClick, children }: EditorMapProps) {
   );
 
   return (
-    <div ref={containerRef} className="w-full h-full rounded-lg overflow-hidden">
+    <div className="relative w-full h-full rounded-lg overflow-hidden">
+      <div ref={containerRef} className="w-full h-full" />
       {mapReady && (
         <MapContext.Provider value={contextValue}>{children}</MapContext.Provider>
+      )}
+
+      {/* Preview location card */}
+      {previewLocation && (
+        <div className="absolute bottom-4 left-4 right-4 bg-white rounded-lg shadow-xl border border-gray-200 p-4 z-10">
+          <div className="flex items-start gap-3">
+            <div className="flex-shrink-0 w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+              <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 truncate">{previewLocation.name}</h3>
+              <p className="text-sm text-gray-500 truncate">{previewLocation.fullAddress}</p>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button
+              type="button"
+              onClick={onCancelPreview}
+              className="flex-1 px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onAddPreview}
+              className="flex-1 px-4 py-2 text-white bg-green-500 hover:bg-green-600 rounded-lg font-medium transition-colors"
+            >
+              Add Location
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
