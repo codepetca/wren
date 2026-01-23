@@ -3,7 +3,7 @@
 import { useRef, useEffect } from "react";
 import { Search, Loader2, MapPin } from "lucide-react";
 import { useLocationSearch } from "@/hooks/useLocationSearch";
-import type { GeocodingResult } from "@/../lib/geocoding";
+import type { GeocodingResult } from "@/../lib/appleGeocoding";
 
 interface LocationSearchProps {
   onSelect: (result: GeocodingResult) => void;

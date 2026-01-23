@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useDebounce } from "./useDebounce";
-import { searchLocations, type GeocodingResult } from "@/../lib/geocoding";
+import { searchLocations, type GeocodingResult } from "@/../lib/appleGeocoding";
 
 interface UseLocationSearchOptions {
   debounceMs?: number;

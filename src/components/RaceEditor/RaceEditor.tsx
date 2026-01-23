@@ -10,7 +10,7 @@ import dynamic from "next/dynamic";
 import { LocationSearch } from "./LocationSearch";
 import { POIList } from "./POIList";
 import type { EditorPOI } from "./POIListItem";
-import type { GeocodingResult } from "@/../lib/geocoding";
+import type { GeocodingResult } from "@/../lib/appleGeocoding";
 import type { PreviewLocation } from "./EditorMap";
 
 // Dynamic import for map to avoid SSR issues
