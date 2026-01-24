@@ -19,28 +19,17 @@ export interface NearbyPOI {
   category?: string;
 }
 
-export interface SelectedPOI {
-  lat: number;
-  lng: number;
-  name: string;
-  fullAddress: string;
-}
-
 interface EditorMapProps {
   pois: EditorPOI[];
-  nearbyPOIs?: NearbyPOI[];
-  selectedPOI?: SelectedPOI | null;
   initialCenter?: { lat: number; lng: number } | null;
-  isLoading?: boolean;
-  onPOIClick?: (poi: EditorPOI) => void;
   onSelectNearbyPOI?: (poi: NearbyPOI) => void;
-  onAddPOI?: () => void;
-  onClearSelection?: () => void;
+  onLongPressPOI?: (poiId: string) => void;
 }
 
 // Default center (SF Bay Area)
 const DEFAULT_CENTER = { lat: 37.7749, lng: -122.4194 };
 const DEFAULT_ZOOM = 12;
+const LONG_PRESS_DURATION = 500; // ms
 
 // Track MapKit initialization
 let mapkitLoadPromise: Promise<void> | null = null;
@@ -90,20 +79,25 @@ async function loadMapKit(): Promise<void> {
 
 export function EditorMap({
   pois,
-  nearbyPOIs = [],
-  selectedPOI,
   initialCenter,
-  isLoading,
-  onPOIClick,
   onSelectNearbyPOI,
-  onAddPOI,
-  onClearSelection,
+  onLongPressPOI,
 }: EditorMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapkit.Map | null>(null);
   const raceAnnotationsRef = useRef<Map<string, mapkit.Annotation>>(new Map());
-  const nearbyAnnotationsRef = useRef<Map<string, mapkit.Annotation>>(new Map());
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const longPressPOIRef = useRef<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
+
+  // Clear long press timer
+  const clearLongPress = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressPOIRef.current = null;
+  }, []);
 
   // Initialize MapKit and create map
   useEffect(() => {
@@ -147,12 +141,11 @@ export function EditorMap({
         mapRef.current.destroy();
         mapRef.current = null;
       }
-      // Clear annotation refs when map is destroyed
       raceAnnotationsRef.current.clear();
-      nearbyAnnotationsRef.current.clear();
       setMapReady(false);
+      clearLongPress();
     };
-  }, []);
+  }, [clearLongPress]);
 
   // Manage race POI annotations (green numbered markers)
   useEffect(() => {
@@ -176,6 +169,25 @@ export function EditorMap({
 
       if (existing) {
         existing.coordinate = new window.mapkit.Coordinate(poi.lat, poi.lng);
+        // Update glyph text for reordering
+        const anyExisting = existing as unknown as Record<string, unknown>;
+        if (anyExisting.glyphText !== String(poi.order)) {
+          // Need to recreate annotation for glyph update
+          map.removeAnnotation(existing);
+          currentAnnotations.delete(poi.id);
+
+          const annotation = new window.mapkit.MarkerAnnotation(
+            new window.mapkit.Coordinate(poi.lat, poi.lng),
+            {
+              color: "#22c55e",
+              glyphText: String(poi.order),
+              title: poi.name,
+              data: { type: "race-poi", poi },
+            }
+          );
+          map.addAnnotation(annotation);
+          currentAnnotations.set(poi.id, annotation);
+        }
       } else {
         const annotation = new window.mapkit.MarkerAnnotation(
           new window.mapkit.Coordinate(poi.lat, poi.lng),
@@ -193,64 +205,30 @@ export function EditorMap({
     });
   }, [pois, mapReady]);
 
-  // Manage nearby POI annotations (orange markers)
-  useEffect(() => {
-    if (!mapRef.current || !mapReady) return;
-
-    const map = mapRef.current;
-    const currentAnnotations = nearbyAnnotationsRef.current;
-    const poiIds = new Set(nearbyPOIs.map((p) => p.id));
-
-    // Remove annotations for POIs that no longer exist
-    currentAnnotations.forEach((annotation, id) => {
-      if (!poiIds.has(id)) {
-        map.removeAnnotation(annotation);
-        currentAnnotations.delete(id);
-      }
-    });
-
-    // Add/update annotations for nearby POIs
-    nearbyPOIs.forEach((poi) => {
-      const existing = currentAnnotations.get(poi.id);
-      const isSelected = selectedPOI?.lat === poi.lat && selectedPOI?.lng === poi.lng;
-
-      if (existing) {
-        existing.coordinate = new window.mapkit.Coordinate(poi.lat, poi.lng);
-        existing.color = isSelected ? "#22c55e" : "#f97316";
-      } else {
-        const annotation = new window.mapkit.MarkerAnnotation(
-          new window.mapkit.Coordinate(poi.lat, poi.lng),
-          {
-            color: isSelected ? "#22c55e" : "#f97316",
-            title: poi.name,
-            data: { type: "nearby-poi", poi },
-          }
-        );
-
-        map.addAnnotation(annotation);
-        currentAnnotations.set(poi.id, annotation);
-      }
-    });
-  }, [nearbyPOIs, selectedPOI, mapReady]);
-
-  // Handle annotation selection
+  // Handle annotation selection and long press
   useEffect(() => {
     if (!mapRef.current || !mapReady) return;
 
     const map = mapRef.current;
 
+    // Handle select - for native POIs, add them; for race POIs, start long press detection
     const handleSelect = (event: mapkit.MapEvent) => {
       if (!event.annotation) return;
 
       const annotation = event.annotation as unknown as Record<string, unknown>;
-      const data = annotation.data as { type: string; poi: EditorPOI | NearbyPOI } | undefined;
+      const data = annotation.data as { type: string; poi: EditorPOI } | undefined;
 
-      if (data?.type === "race-poi" && onPOIClick) {
-        onPOIClick(data.poi as EditorPOI);
-      } else if (data?.type === "nearby-poi" && onSelectNearbyPOI) {
-        onSelectNearbyPOI(data.poi as NearbyPOI);
+      if (data?.type === "race-poi") {
+        // Race POI selected - start long press timer for removal
+        longPressPOIRef.current = data.poi.id;
+        longPressTimerRef.current = setTimeout(() => {
+          if (longPressPOIRef.current && onLongPressPOI) {
+            onLongPressPOI(longPressPOIRef.current);
+          }
+          clearLongPress();
+        }, LONG_PRESS_DURATION);
       } else if (annotation.coordinate && onSelectNearbyPOI) {
-        // Native Apple Maps POI - no custom data but has coordinate
+        // Native Apple Maps POI - add it directly
         const coord = annotation.coordinate as { latitude: number; longitude: number };
         const name = (annotation.title as string) || "Selected Location";
         onSelectNearbyPOI({
@@ -263,12 +241,20 @@ export function EditorMap({
       }
     };
 
+    // Handle deselect - clear long press timer
+    const handleDeselect = () => {
+      clearLongPress();
+    };
+
     map.addEventListener("select", handleSelect);
+    map.addEventListener("deselect", handleDeselect);
 
     return () => {
       map.removeEventListener("select", handleSelect);
+      map.removeEventListener("deselect", handleDeselect);
+      clearLongPress();
     };
-  }, [mapReady, onPOIClick, onSelectNearbyPOI]);
+  }, [mapReady, onSelectNearbyPOI, onLongPressPOI, clearLongPress]);
 
   // Fly to initial center when it changes
   useEffect(() => {
@@ -295,11 +281,29 @@ export function EditorMap({
       );
       map._impl.zoomLevel = 15;
     } else {
-      const coordinates = pois.map(
-        (p) => new window.mapkit.Coordinate(p.lat, p.lng)
+      // Calculate bounding box manually
+      let minLat = pois[0].lat;
+      let maxLat = pois[0].lat;
+      let minLng = pois[0].lng;
+      let maxLng = pois[0].lng;
+
+      pois.forEach((p) => {
+        minLat = Math.min(minLat, p.lat);
+        maxLat = Math.max(maxLat, p.lat);
+        minLng = Math.min(minLng, p.lng);
+        maxLng = Math.max(maxLng, p.lng);
+      });
+
+      const centerLat = (minLat + maxLat) / 2;
+      const centerLng = (minLng + maxLng) / 2;
+      const latSpan = (maxLat - minLat) * 1.5; // Add padding
+      const lngSpan = (maxLng - minLng) * 1.5;
+
+      const region = new window.mapkit.CoordinateRegion(
+        new window.mapkit.Coordinate(centerLat, centerLng),
+        new window.mapkit.CoordinateSpan(Math.max(latSpan, 0.01), Math.max(lngSpan, 0.01))
       );
-      const boundingRegion = window.mapkit.BoundingRegion.fromCoordinates(coordinates);
-      map.setRegionAnimated(boundingRegion.toCoordinateRegion(), true);
+      map.setRegionAnimated(region, true);
     }
   }, [pois]);
 
@@ -310,63 +314,8 @@ export function EditorMap({
   }, [mapReady, pois.length, fitBounds, initialCenter]);
 
   return (
-    <div className="relative w-full h-full rounded-lg overflow-hidden">
+    <div className="w-full h-full">
       <div ref={containerRef} className="w-full h-full" />
-
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="absolute top-4 left-4 z-10 px-3 py-2 bg-white rounded-full shadow-lg border border-gray-200 flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <span className="text-sm text-gray-600">Loading places...</span>
-        </div>
-      )}
-
-      {/* Hint text when no POI selected and not loading */}
-      {!selectedPOI && !isLoading && mapReady && nearbyPOIs.length === 0 && (
-        <div className="absolute top-4 left-4 right-4 z-10">
-          <div className="bg-white/90 backdrop-blur rounded-full shadow-lg border border-gray-200 px-4 py-2 text-center">
-            <p className="text-sm text-gray-600">Search for a location to find places nearby</p>
-          </div>
-        </div>
-      )}
-
-      {/* Hint when POIs are shown but none selected */}
-      {!selectedPOI && !isLoading && nearbyPOIs.length > 0 && (
-        <div className="absolute top-4 left-4 right-4 z-10">
-          <div className="bg-white/90 backdrop-blur rounded-full shadow-lg border border-gray-200 px-4 py-2 text-center">
-            <p className="text-sm text-gray-600">Tap an orange pin to add it</p>
-          </div>
-        </div>
-      )}
-
-      {/* Selected POI - compact bottom bar */}
-      {selectedPOI && (
-        <div className="absolute bottom-4 left-4 right-4 bg-white rounded-full shadow-xl border border-gray-200 px-4 py-2 z-10 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onClearSelection}
-            className="flex-shrink-0 w-8 h-8 text-gray-400 hover:text-gray-600 flex items-center justify-center transition-colors"
-            aria-label="Cancel"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-          <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-900 truncate">{selectedPOI.name}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onAddPOI}
-            className="flex-shrink-0 w-10 h-10 bg-green-500 hover:bg-green-600 rounded-full flex items-center justify-center transition-colors"
-            aria-label="Add to race"
-          >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-        </div>
-      )}
     </div>
   );
 }
